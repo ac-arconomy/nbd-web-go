@@ -1,0 +1,151 @@
+#https://medium.com/@lestrrat/taming-google-container-builder-22a6dded155c
+substitutions:
+  _SERVICE_NAME: golang-template-service
+  _PROD_DOMAIN: template.gembet.net
+  _GCP_CONNECTION_INSTANCE: gembet:asia-northeast1:gembet-db
+  _DATABASE_NAME: template
+  _MIGRATE_DATABASE: "true"
+  _REGION: asia-northeast1
+  _DART_REPO_NAME: golang-template-service-dart-sdk
+  _GOOGLE_CLOUD_PROJECT: gembet
+
+steps:
+    #Set ssh key fir bob9 library
+    - name: gcr.io/cloud-builders/gcloud
+      id: 'setup-ssh-key'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          #copy ssh key
+          gsutil cp -vp gs://gembet/ssh/rsa_ssh.key.enc /root/.ssh/rsa_ssh.key.dec
+
+          ssh-keyscan -t rsa bitbucket.org > known_hosts
+          mv known_hosts /root/.ssh/known_hosts
+
+          cat /root/.ssh/known_hosts
+
+          #decrypt
+          gcloud kms decrypt \
+          --ciphertext-file=/root/.ssh/rsa_ssh.key.dec \
+          --plaintext-file=/root/.ssh/id_rsa  \
+          --location=global \
+          --keyring=gembet \
+          --key=bitbucket-ssh
+
+          #docker file needs this file
+          cp /root/.ssh/id_rsa ./rsa_ssh.key
+          #copy ssh key
+          chmod 600 /root/.ssh/id_rsa
+          cat <<EOF >/root/.ssh/config
+          Hostname bitbucket.org
+          IdentityFile /root/.ssh/id_rsa
+          EOF
+      volumes:
+        - name: 'ssh'
+          path: /root/.ssh
+
+    #Pull Last Builder to use as cache
+    - name: 'gcr.io/cloud-builders/docker'
+      id: 'pull-builder-image-for-cache'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          docker pull gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder || exit 0
+
+
+    #https://andrewlock.net/caching-docker-layers-on-serverless-build-hosts-with-multi-stage-builds---target,-and---cache-from/#bonus-toggling-between-build-approaches
+    #Build Builder
+    - name: gcr.io/cloud-builders/docker
+      id: 'build-builder'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          cp /root/.ssh/id_rsa ./rsa_ssh.key
+          docker build \
+          --target builder \
+          --cache-from gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder \
+          -t gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder .
+      volumes:
+        - name: 'ssh'
+          path: /root/.ssh
+
+    #Pull Last Runtime
+    - name: 'gcr.io/cloud-builders/docker'
+      id: 'pull-runtime-image-for-cache'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          docker pull gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest || exit 0
+
+    #Build Runtime
+    - name: gcr.io/cloud-builders/docker
+      id: 'build-runtime-image'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          docker build \
+          --cache-from gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder \
+          --cache-from gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest \
+          -t gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:$SHORT_SHA \
+          -t gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest \
+          .
+
+    - name: 'gcr.io/cloud-builders/docker'
+      id: 'push-runtime-docker'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          docker push gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:$SHORT_SHA
+
+    #Deploy to Cloud Run
+    - name: gcr.io/cloud-builders/gcloud
+      id: 'cloud-run-deployment'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          gcloud beta run deploy $_SERVICE_NAME \
+          --image gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:$SHORT_SHA \
+          --set-cloudsql-instances $_GCP_CONNECTION_INSTANCE \
+          --region $_REGION \
+          --set-env-vars DATABASE_NAME=$_DATABASE_NAME \
+          --set-env-vars MIGRATE_DATABASE=$_MIGRATE_DATABASE \
+          --set-env-vars GCP_CONNECTION_INSTANCE=$_GCP_CONNECTION_INSTANCE \
+          --set-env-vars GOOGLE_CLOUD_PROJECT=$_GOOGLE_CLOUD_PROJECT \
+          --allow-unauthenticated \
+          --platform managed \
+          --max-instances=10
+
+    - name: gcr.io/cloud-builders/gcloud
+      id: 'cloud-run-domain-mappings'
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          gcloud beta run domain-mappings create --service $_SERVICE_NAME \
+          --domain $_PROD_DOMAIN \
+          --platform managed  \
+          --region asia-northeast1 || exit 0
+
+    #Generate Dart Library
+    #https://bitbucket.org/gembet/dart-protobuf-library-builder
+    - name: gcr.io/gembet/gembet/dart-protobuf-library-builder:latest
+      id: 'build-dart-sdk'
+      waitFor: ['setup-ssh-key']
+      entrypoint: 'bash'
+      args:
+        - -c
+        - |
+          cd /app
+          cp /workspace/api.proto .
+          sh ./build.sh $_DART_REPO_NAME $SHORT_SHA
+      volumes:
+        - name: 'ssh'
+          path: /root/.ssh
+images: ['gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder', 'gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest']
