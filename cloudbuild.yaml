@@ -118,7 +118,7 @@ steps:
           --set-env-vars SMTP_PASSWORD=$_SMTP_PASSWORD \
           --set-env-vars SMTP_PASSWORD=$_SMTP_HOST \
           --set-env-vars SMTP_PASSWORD=$_SMTP_PORT \
-          --set-env-vars SMTP_SEND_TO=_$SMTP_SEND_TO \
+          --set-env-vars SMTP_SEND_TO=$_SMTP_SEND_TO \
           --allow-unauthenticated \
           --platform managed \
           --max-instances=10
