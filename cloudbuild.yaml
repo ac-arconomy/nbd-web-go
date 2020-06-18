@@ -10,51 +10,6 @@ substitutions:
   _SMTP_SEND_TO: glenn@pringle.com.au
 
 steps:
-#Set ssh key fir bob9 library
-#    - name: gcr.io/cloud-builders/gcloud
-#      id: 'setup-ssh-key'
-#      entrypoint: 'bash'
-#      args:
-#        - -c
-#        - |
-#          #copy ssh key
-#          gsutil cp -vp gs://gembet/ssh/rsa_ssh.key.enc /root/.ssh/rsa_ssh.key.dec
-#
-#          ssh-keyscan -t rsa bitbucket.org > known_hosts
-#          mv known_hosts /root/.ssh/known_hosts
-#
-#          cat /root/.ssh/known_hosts
-#
-#          #decrypt
-#          gcloud kms decrypt \
-#          --ciphertext-file=/root/.ssh/rsa_ssh.key.dec \
-#          --plaintext-file=/root/.ssh/id_rsa  \
-#          --location=global \
-#          --keyring=gembet \
-#          --key=bitbucket-ssh
-#
-#          #docker file needs this file
-#          cp /root/.ssh/id_rsa ./rsa_ssh.key
-#          #copy ssh key
-#          chmod 600 /root/.ssh/id_rsa
-#          cat <<EOF >/root/.ssh/config
-#          Hostname bitbucket.org
-#          IdentityFile /root/.ssh/id_rsa
-#          EOF
-#      volumes:
-#        - name: 'ssh'
-#          path: /root/.ssh
-#
-#    #Pull Last Builder to use as cache
-#    - name: 'gcr.io/cloud-builders/docker'
-#      id: 'pull-builder-image-for-cache'
-#      entrypoint: 'bash'
-#      args:
-#        - -c
-#        - |
-#          docker pull gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder || exit 0
-
-
     #https://andrewlock.net/caching-docker-layers-on-serverless-build-hosts-with-multi-stage-builds---target,-and---cache-from/#bonus-toggling-between-build-approaches
     #Build Builder
     - name: gcr.io/cloud-builders/docker
@@ -67,7 +22,6 @@ steps:
           --target builder \
           --cache-from gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:builder \
           -t gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:builder .
-
 
     #Pull Last Runtime
     - name: 'gcr.io/cloud-builders/docker'
@@ -119,17 +73,5 @@ steps:
           --allow-unauthenticated \
           --platform managed \
           --max-instances=10
-
-#    - name: gcr.io/cloud-builders/gcloud
-#      id: 'cloud-run-domain-mappings'
-#      entrypoint: 'bash'
-#      args:
-#        - -c
-#        - |
-#          gcloud beta run domain-mappings create --service $_SERVICE_NAME \
-#          --domain $_PROD_DOMAIN \
-#          --platform managed  \
-#          --region asia-northeast1 || exit 0
-
 
 images: ['gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:builder', 'gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:latest']
