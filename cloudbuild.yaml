@@ -7,7 +7,9 @@ substitutions:
   _SMTP_PASSWORD: 1lovejaffacakes
   _SMTP_HOST: smtp.gmail.com
   _SMTP_PORT: "587"
-  _SMTP_SEND_TO: glenn@pringle.com.au
+  _SMTP_SEND_TO: ashlee@naturalbydesign.com.au
+  _INSIGHTLY_URL: https://api.na1.insightly.com/v3.1/Leads/
+  _INSIGHTLY_APIKEY: e112fa8b-574f-44bd-b636-2340d5fe5c71
 
 steps:
     #https://andrewlock.net/caching-docker-layers-on-serverless-build-hosts-with-multi-stage-builds---target,-and---cache-from/#bonus-toggling-between-build-approaches
@@ -70,6 +72,8 @@ steps:
           --set-env-vars SMTP_HOST=$_SMTP_HOST \
           --set-env-vars SMTP_PORT=$_SMTP_PORT \
           --set-env-vars SMTP_SEND_TO=$_SMTP_SEND_TO \
+          --set-env-vars INSIGHTLY_URL=$_INSIGHTLY_URL \
+          --set-env-vars INSIGHTLY_APIKEY=$_INSIGHTLY_APIKEY \
           --allow-unauthenticated \
           --platform managed \
           --max-instances=10

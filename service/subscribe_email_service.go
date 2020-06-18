@@ -1,10 +1,12 @@
 package service
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/ac-arconomy/nbd-web-go/model"
 	"net/http"
+	"os"
 )
 
 type SubscribeEmail struct{}
@@ -22,10 +24,25 @@ func (s *SubscribeEmail) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Do something with the Person struct...
-	fmt.Fprintf(w, "Person: %+v", lead)
+	client := &http.Client{}
 
+	leadJson, err := json.Marshal(lead)
 
-	//w.Write([]byte(`{"message": "hello world"}`))
+	insightlyUrl := os.Getenv("INSIGHTLY_URL")
+	insightlyApiKey := os.Getenv("INSIGHTLY_APIKEY")
+
+	req, err := http.NewRequest("POST", insightlyUrl, bytes.NewReader(leadJson))
+	req.Header.Add("User-Agent", "nbd-http-client")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization","Basic " + basicAuth(insightlyApiKey,""))
+
+	resp, err := client.Do(req)
+	defer resp.Body.Close()
 }
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
 
