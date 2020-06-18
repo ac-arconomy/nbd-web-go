@@ -7,6 +7,7 @@ import (
 	"github.com/ac-arconomy/nbd-web-go/model"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type SubscribeEmail struct{}
@@ -23,21 +24,34 @@ func (s *SubscribeEmail) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	client := &http.Client{}
-
-	leadJson, err := json.Marshal(lead)
 
 	insightlyUrl := os.Getenv("INSIGHTLY_URL")
 	insightlyApiKey := os.Getenv("INSIGHTLY_APIKEY")
 
+	names := strings.Split(lead.FirstName, " ")
+	lead.FirstName = names[0]
+
+	var lastName = ""
+	for i, part := range names {
+		if i != 0 {
+			lastName = lastName + " " + part
+		} else  {}
+
+	}
+	lead.LastName = strings.TrimSpace(lastName)
+
+	leadJson, err := json.Marshal(lead)
 	req, err := http.NewRequest("POST", insightlyUrl, bytes.NewReader(leadJson))
 	req.Header.Add("User-Agent", "nbd-http-client")
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization","Basic " + basicAuth(insightlyApiKey,""))
 
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
+	if err != nil {
+	} else {
+		defer resp.Body.Close()
+	}
 }
 
 func basicAuth(username, password string) string {
