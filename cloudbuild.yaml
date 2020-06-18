@@ -1,15 +1,12 @@
 #https://medium.com/@lestrrat/taming-google-container-builder-22a6dded155c
 substitutions:
   _SERVICE_NAME: nbd-web-go
-#  _PROD_DOMAIN: template.gembet.net
-#  _DATABASE_NAME: template
-#  _MIGRATE_DATABASE: "true"
   _REGION: asia-northeast1
   _GOOGLE_CLOUD_PROJECT: arconomy-122603
   _SMTP_USERNAME: "ac@arconomy.digital"
   _SMTP_PASSWORD: 1lovejaffacakes
   _SMTP_HOST: smtp.gmail.com
-  _SMTP_PORT: 587
+  _SMTP_PORT: "587"
   _SMTP_SEND_TO: glenn@pringle.com.au
 
 steps:
