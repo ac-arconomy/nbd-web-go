@@ -21,4 +21,4 @@ FROM scratch
 COPY --from=builder /go/bin/go-app /go/bin/go-app
 COPY --from=builder /app/static /go/bin/static
 
-ENTRYPOINT /go/bin/go-app
+CMD ["/go/bin/go-app"]
