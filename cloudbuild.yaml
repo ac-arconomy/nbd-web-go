@@ -1,13 +1,11 @@
 #https://medium.com/@lestrrat/taming-google-container-builder-22a6dded155c
 substitutions:
-  _SERVICE_NAME: golang-template-service
-  _PROD_DOMAIN: template.gembet.net
-  _GCP_CONNECTION_INSTANCE: gembet:asia-northeast1:gembet-db
-  _DATABASE_NAME: template
-  _MIGRATE_DATABASE: "true"
+  _SERVICE_NAME: nbd-web-go
+#  _PROD_DOMAIN: template.gembet.net
+#  _DATABASE_NAME: template
+#  _MIGRATE_DATABASE: "true"
   _REGION: asia-northeast1
-  _DART_REPO_NAME: golang-template-service-dart-sdk
-  _GOOGLE_CLOUD_PROJECT: gembet
+  _GOOGLE_CLOUD_PROJECT: arconomy-122603
 
 steps:
 #Set ssh key fir bob9 library
@@ -65,8 +63,8 @@ steps:
         - |
           docker build \
           --target builder \
-          --cache-from gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder \
-          -t gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder .
+          --cache-from gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:builder \
+          -t gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:builder .
 
 
     #Pull Last Runtime
@@ -76,7 +74,7 @@ steps:
       args:
         - -c
         - |
-          docker pull gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest || exit 0
+          docker pull gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:latest || exit 0
 
     #Build Runtime
     - name: gcr.io/cloud-builders/docker
@@ -86,10 +84,10 @@ steps:
         - -c
         - |
           docker build \
-          --cache-from gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder \
-          --cache-from gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest \
-          -t gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:$SHORT_SHA \
-          -t gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest \
+          --cache-from gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:builder \
+          --cache-from gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:latest \
+          -t gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:$SHORT_SHA \
+          -t gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:latest \
           .
 
     - name: 'gcr.io/cloud-builders/docker'
@@ -98,7 +96,7 @@ steps:
       args:
         - -c
         - |
-          docker push gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:$SHORT_SHA
+          docker push gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:$SHORT_SHA
 
     #Deploy to Cloud Run
     - name: gcr.io/cloud-builders/gcloud
@@ -108,27 +106,23 @@ steps:
         - -c
         - |
           gcloud beta run deploy $_SERVICE_NAME \
-          --image gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:$SHORT_SHA \
-          --set-cloudsql-instances $_GCP_CONNECTION_INSTANCE \
+          --image gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:$SHORT_SHA \
           --region $_REGION \
-          --set-env-vars DATABASE_NAME=$_DATABASE_NAME \
-          --set-env-vars MIGRATE_DATABASE=$_MIGRATE_DATABASE \
-          --set-env-vars GCP_CONNECTION_INSTANCE=$_GCP_CONNECTION_INSTANCE \
           --set-env-vars GOOGLE_CLOUD_PROJECT=$_GOOGLE_CLOUD_PROJECT \
           --allow-unauthenticated \
           --platform managed \
           --max-instances=10
 
-    - name: gcr.io/cloud-builders/gcloud
-      id: 'cloud-run-domain-mappings'
-      entrypoint: 'bash'
-      args:
-        - -c
-        - |
-          gcloud beta run domain-mappings create --service $_SERVICE_NAME \
-          --domain $_PROD_DOMAIN \
-          --platform managed  \
-          --region asia-northeast1 || exit 0
+#    - name: gcr.io/cloud-builders/gcloud
+#      id: 'cloud-run-domain-mappings'
+#      entrypoint: 'bash'
+#      args:
+#        - -c
+#        - |
+#          gcloud beta run domain-mappings create --service $_SERVICE_NAME \
+#          --domain $_PROD_DOMAIN \
+#          --platform managed  \
+#          --region asia-northeast1 || exit 0
 
 
-images: ['gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:builder', 'gcr.io/$PROJECT_ID/gembet/$_SERVICE_NAME:latest']
+images: ['gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:builder', 'gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:latest']

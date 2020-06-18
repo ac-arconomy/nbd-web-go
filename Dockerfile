@@ -1,5 +1,5 @@
 # Start from golang v1.11 base image
-FROM golang:1.12.8 as builder
+FROM golang:1.14.4 as builder
 LABEL maintainer="Glenn Pringle <glenn@pringle.com.au>"
 ENV GO111MODULE=on
 WORKDIR /app
