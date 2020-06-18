@@ -6,6 +6,11 @@ substitutions:
 #  _MIGRATE_DATABASE: "true"
   _REGION: asia-northeast1
   _GOOGLE_CLOUD_PROJECT: arconomy-122603
+  _SMTP_USERNAME: ac@arconomy.digital
+  _SMTP_PASSWORD: 1lovejaffacakes
+  _SMTP_HOST: smtp.gmail.com
+  _SMTP_PORT: 587
+  _SMTP_SEND_TO: glenn@pringle.com.au
 
 steps:
 #Set ssh key fir bob9 library
@@ -109,6 +114,11 @@ steps:
           --image gcr.io/$PROJECT_ID/nbd/$_SERVICE_NAME:$SHORT_SHA \
           --region $_REGION \
           --set-env-vars GOOGLE_CLOUD_PROJECT=$_GOOGLE_CLOUD_PROJECT \
+          --set-env-vars SMTP_USERNAME=$_SMTP_USERNAME \
+          --set-env-vars SMTP_PASSWORD=$_SMTP_PASSWORD \
+          --set-env-vars SMTP_PASSWORD=$_SMTP_HOST \
+          --set-env-vars SMTP_PASSWORD=$_SMTP_PORT \
+          --set-env-vars SMTP_SEND_TO=_$SMTP_SEND_TO \
           --allow-unauthenticated \
           --platform managed \
           --max-instances=10

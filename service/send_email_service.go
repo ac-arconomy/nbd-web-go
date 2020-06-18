@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/smtp"
+	"os"
 )
 
 type SendEmail struct{}
@@ -23,16 +24,24 @@ func (s *SendEmail) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var smtpUsername = os.Getenv("SMTP_USERNAME")
+	var smtpPassword = os.Getenv("SMTP_PASSWORD")
+	var smtpHost = os.Getenv("SMTP_HOST")
+	var smtpPort = os.Getenv("SMTP_PORT")
+
 	// Choose auth method and set it up
-	auth := smtp.PlainAuth("", "ac@arconomy.digital", "1lovejaffacakes", "smtp.gmail.com")
+	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
 
 	// Here we do it all: connect to our server, set up a message and send it
-	to := []string{"glenn@pringle.com.au"}
-	msg := []byte("To: glenn@pringle.com.au\r\n" +
-		"Subject: the subjeect?\r\n" +
-		"\r\n" +
-		"testing the mail\r\n")
-	err = smtp.SendMail("smtp.gmail.com:587", auth, "glenn@pringle.com.au", to, msg)
+	//ashlee@naturalbydesign.com.au
+	var sendTo = os.Getenv("SMTP_SEND_TO")
+	to := []string{sendTo}
+
+	var subject = "Subject: " + "Contact form: " + lead.FirstName + " " + lead.LastName
+	msg := []byte("To: "  + sendTo  + "\r\n" +
+		subject  + "\r\n" +
+		lead.Message + "\r\n")
+	err = smtp.SendMail(smtpHost + ":" + smtpPort, auth, lead.Email, to, msg)
 	if err != nil {
 		log.Fatal(err)
 	}
